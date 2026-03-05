@@ -739,7 +739,7 @@ app.post("/api/location", authMiddleware, async (req, res) => {
 
 app.use(express.static(path.join(__dirname)));
 
-app.get(["/", "/login", "/register", "/join/:inviteCode"], (_req, res) => {
+app.get(["/", "/login", "/register", "/join/:inviteCode([a-f0-9]{32})"], (_req, res) => {
   return res.sendFile(path.join(__dirname, "index.html"));
 });
 

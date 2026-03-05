@@ -833,7 +833,7 @@ function registerServiceWorker() {
 
   window.addEventListener("load", async () => {
     try {
-      await navigator.serviceWorker.register("service-worker.js");
+      await navigator.serviceWorker.register("/service-worker.js");
     } catch (error) {
       console.error("Service worker registration failed:", error);
     }
