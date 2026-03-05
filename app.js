@@ -3,14 +3,17 @@
   marker: null,
   watchId: null,
   isLoggedIn: false,
+  userInitials: "GS",
 };
 
 const loginScreen = document.getElementById("loginScreen");
 const mainScreen = document.getElementById("mainScreen");
 const loginForm = document.getElementById("loginForm");
+const emailInput = document.getElementById("email");
 const startBtn = document.getElementById("startBtn");
 const statusText = document.getElementById("statusText");
 const trackingToggle = document.getElementById("trackingToggle");
+const avatarEl = document.querySelector(".avatar");
 
 loginForm.addEventListener("submit", handleLogin);
 startBtn.addEventListener("click", startLocationSharing);
@@ -21,6 +24,8 @@ registerServiceWorker();
 function handleLogin(event) {
   event.preventDefault();
   state.isLoggedIn = true;
+  state.userInitials = deriveUserInitials(emailInput.value);
+  avatarEl.textContent = state.userInitials;
 
   loginScreen.classList.remove("active");
   mainScreen.classList.add("active");
@@ -86,7 +91,7 @@ function handleLocationUpdate(position) {
   const latlng = [latitude, longitude];
 
   if (!state.marker) {
-    state.marker = L.marker(latlng).addTo(state.map);
+    state.marker = L.marker(latlng, { icon: createUserMarkerIcon() }).addTo(state.map);
   } else {
     state.marker.setLatLng(latlng);
   }
@@ -148,6 +153,28 @@ async function sendLocation(lat, lng, accuracy, timestamp) {
 
 function setStatus(message) {
   statusText.textContent = message;
+}
+
+function deriveUserInitials(email) {
+  const localPart = (email || "").split("@")[0].trim();
+  const clean = localPart.replace(/[^a-zA-Z0-9]+/g, " ").trim();
+
+  if (!clean) return "GS";
+
+  const pieces = clean.split(/\s+/).filter(Boolean);
+  const first = pieces[0]?.charAt(0) || "G";
+  const second = pieces[1]?.charAt(0) || pieces[0]?.charAt(1) || "S";
+
+  return `${first}${second}`.toUpperCase();
+}
+
+function createUserMarkerIcon() {
+  return L.divIcon({
+    className: "user-marker",
+    html: `<span class="user-marker__label">${state.userInitials}</span>`,
+    iconSize: [42, 42],
+    iconAnchor: [21, 21],
+  });
 }
 
 function registerServiceWorker() {

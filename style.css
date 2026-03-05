@@ -284,3 +284,19 @@ body {
 .leaflet-tile {
   filter: brightness(0.55) contrast(1.25) saturate(0.7) hue-rotate(165deg);
 }
+
+.user-marker {
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #4ade80, #16a34a);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+}
+
+.user-marker__label {
+  color: #03210d;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
