@@ -1,0 +1,59 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b0f17" />
+  <title>GeoTracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <section id="loginScreen" class="screen login-screen active" aria-label="Login screen">
+      <div class="login-card">
+        <h1 class="login-title">GeoTracker</h1>
+        <p class="login-subtitle">Secure mission access</p>
+
+        <form id="loginForm" class="login-form" autocomplete="on">
+          <label class="field-label" for="email">Email</label>
+          <input id="email" name="email" type="email" class="text-input" placeholder="you@example.com" required />
+
+          <label class="field-label" for="password">Password</label>
+          <input id="password" name="password" type="password" class="text-input" placeholder="••••••••" required />
+
+          <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="mainScreen" class="screen main-screen" aria-label="Tracking screen">
+      <header class="top-bar">
+        <button class="icon-button" aria-label="Open menu" type="button">☰</button>
+        <h2 class="top-title">Tracking</h2>
+
+        <label class="switch" aria-label="Tracking toggle">
+          <input id="trackingToggle" type="checkbox" checked />
+          <span class="slider"></span>
+        </label>
+
+        <div class="avatar" aria-label="User avatar">GS</div>
+      </header>
+
+      <div id="map" class="map"></div>
+
+      <section class="bottom-card" aria-label="Mission tracking card">
+        <h3>Live Mission Tracking</h3>
+        <p id="statusText">Ready to share your location.</p>
+        <button id="startBtn" class="btn btn-success" type="button">Start Sharing Location</button>
+      </section>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="app.js"></script>
+</body>
+</html>
