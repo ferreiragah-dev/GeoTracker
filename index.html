@@ -18,6 +18,11 @@
         <h1 class="login-title">GeoTracker</h1>
         <p class="login-subtitle">Secure mission access</p>
 
+        <div class="auth-tabs">
+          <button id="loginTab" type="button" class="tab-btn active">Login</button>
+          <button id="registerTab" type="button" class="tab-btn">Create Account</button>
+        </div>
+
         <form id="loginForm" class="login-form" autocomplete="on">
           <label class="field-label" for="email">Email</label>
           <input id="email" name="email" type="email" class="text-input" placeholder="you@example.com" required />
@@ -27,6 +32,24 @@
 
           <button type="submit" class="btn btn-primary">Login</button>
         </form>
+
+        <form id="registerForm" class="login-form hidden" autocomplete="on">
+          <label class="field-label" for="firstName">Nome</label>
+          <input id="firstName" name="firstName" type="text" class="text-input" placeholder="Gabriel" required />
+
+          <label class="field-label" for="lastName">Sobrenome</label>
+          <input id="lastName" name="lastName" type="text" class="text-input" placeholder="Sodexo" required />
+
+          <label class="field-label" for="registerEmail">Email</label>
+          <input id="registerEmail" name="registerEmail" type="email" class="text-input" placeholder="you@example.com" required />
+
+          <label class="field-label" for="registerPassword">Senha</label>
+          <input id="registerPassword" name="registerPassword" type="password" class="text-input" placeholder="Min. 6 caracteres" required />
+
+          <button type="submit" class="btn btn-success">Criar conta</button>
+        </form>
+
+        <p id="authStatus" class="auth-status" role="status" aria-live="polite"></p>
       </div>
     </section>
 

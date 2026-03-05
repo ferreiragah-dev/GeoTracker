@@ -1,0 +1,17 @@
+﻿{
+  "name": "geotracker-pwa",
+  "version": "1.0.0",
+  "description": "GeoTracker PWA with real PostgreSQL auth and user CRUD",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.3"
+  }
+}
