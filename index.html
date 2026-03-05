@@ -18,22 +18,31 @@
         <h1 class="login-title">GeoTracker</h1>
         <p class="login-subtitle">Secure mission access</p>
 
-        <div class="auth-tabs">
-          <button id="loginTab" type="button" class="tab-btn active">Login</button>
-          <button id="registerTab" type="button" class="tab-btn">Create Account</button>
-        </div>
-
         <form id="loginForm" class="login-form" autocomplete="on">
           <label class="field-label" for="email">Email</label>
           <input id="email" name="email" type="email" class="text-input" placeholder="you@example.com" required />
 
           <label class="field-label" for="password">Password</label>
-          <input id="password" name="password" type="password" class="text-input" placeholder="••••••••" required />
+          <input id="password" name="password" type="password" class="text-input" placeholder="********" required />
 
           <button type="submit" class="btn btn-primary">Login</button>
         </form>
 
-        <form id="registerForm" class="login-form hidden" autocomplete="on">
+        <p id="loginStatus" class="auth-status" role="status" aria-live="polite"></p>
+
+        <div class="auth-footer">
+          <span>New here?</span>
+          <button id="goToRegister" class="link-btn" type="button">Create account</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="registerScreen" class="screen login-screen" aria-label="Register screen">
+      <div class="login-card">
+        <h1 class="login-title">Create Account</h1>
+        <p class="login-subtitle">Register to start location tracking</p>
+
+        <form id="registerForm" class="login-form" autocomplete="on">
           <label class="field-label" for="firstName">Nome</label>
           <input id="firstName" name="firstName" type="text" class="text-input" placeholder="Gabriel" required />
 
@@ -49,13 +58,18 @@
           <button type="submit" class="btn btn-success">Criar conta</button>
         </form>
 
-        <p id="authStatus" class="auth-status" role="status" aria-live="polite"></p>
+        <p id="registerStatus" class="auth-status" role="status" aria-live="polite"></p>
+
+        <div class="auth-footer">
+          <span>Already have an account?</span>
+          <button id="backToLogin" class="link-btn" type="button">Back to login</button>
+        </div>
       </div>
     </section>
 
     <section id="mainScreen" class="screen main-screen" aria-label="Tracking screen">
       <header class="top-bar">
-        <button class="icon-button" aria-label="Open menu" type="button">☰</button>
+        <button class="icon-button" aria-label="Open menu" type="button">Menu</button>
         <h2 class="top-title">Tracking</h2>
 
         <label class="switch" aria-label="Tracking toggle">

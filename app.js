@@ -9,35 +9,41 @@ const state = {
 };
 
 const loginScreen = document.getElementById("loginScreen");
+const registerScreen = document.getElementById("registerScreen");
 const mainScreen = document.getElementById("mainScreen");
+
 const loginForm = document.getElementById("loginForm");
 const registerForm = document.getElementById("registerForm");
+
+const loginStatus = document.getElementById("loginStatus");
+const registerStatus = document.getElementById("registerStatus");
+const goToRegisterBtn = document.getElementById("goToRegister");
+const backToLoginBtn = document.getElementById("backToLogin");
+
 const startBtn = document.getElementById("startBtn");
 const statusText = document.getElementById("statusText");
 const trackingToggle = document.getElementById("trackingToggle");
 const avatarEl = document.querySelector(".avatar");
-const loginTab = document.getElementById("loginTab");
-const registerTab = document.getElementById("registerTab");
-const authStatus = document.getElementById("authStatus");
 
 loginForm.addEventListener("submit", handleLogin);
 registerForm.addEventListener("submit", handleRegister);
+goToRegisterBtn.addEventListener("click", () => showAuthScreen("register"));
+backToLoginBtn.addEventListener("click", () => showAuthScreen("login"));
+
 startBtn.addEventListener("click", startLocationSharing);
 trackingToggle.addEventListener("change", handleToggleChange);
-loginTab.addEventListener("click", () => switchAuthTab("login"));
-registerTab.addEventListener("click", () => switchAuthTab("register"));
 
 registerServiceWorker();
 restoreSession();
 
-function switchAuthTab(tabName) {
-  const loginActive = tabName === "login";
+function showAuthScreen(target) {
+  const showLogin = target !== "register";
 
-  loginTab.classList.toggle("active", loginActive);
-  registerTab.classList.toggle("active", !loginActive);
-  loginForm.classList.toggle("hidden", !loginActive);
-  registerForm.classList.toggle("hidden", loginActive);
-  setAuthStatus("");
+  loginScreen.classList.toggle("active", showLogin);
+  registerScreen.classList.toggle("active", !showLogin);
+
+  setLoginStatus("");
+  setRegisterStatus("");
 }
 
 async function handleRegister(event) {
@@ -51,7 +57,7 @@ async function handleRegister(event) {
   };
 
   if (!payload.firstName || !payload.lastName || !payload.email || !payload.password) {
-    setAuthStatus("Preencha Nome, Sobrenome, Email e Senha.", "error");
+    setRegisterStatus("Preencha Nome, Sobrenome, Email e Senha.", "error");
     return;
   }
 
@@ -71,10 +77,11 @@ async function handleRegister(event) {
     loginForm.email.value = payload.email;
     loginForm.password.value = "";
     registerForm.reset();
-    switchAuthTab("login");
-    setAuthStatus("Conta criada. Agora faça login.", "success");
+
+    showAuthScreen("login");
+    setLoginStatus("Conta criada. Agora faca login.", "success");
   } catch (error) {
-    setAuthStatus(error.message || "Erro ao criar conta.", "error");
+    setRegisterStatus(error.message || "Erro ao criar conta.", "error");
   }
 }
 
@@ -85,11 +92,11 @@ async function handleLogin(event) {
   const password = loginForm.password.value;
 
   if (!email || !password) {
-    setAuthStatus("Informe email e senha.", "error");
+    setLoginStatus("Informe email e senha.", "error");
     return;
   }
 
-  setAuthStatus("Autenticando...");
+  setLoginStatus("Autenticando...");
 
   try {
     const response = await fetch("/api/auth/login", {
@@ -110,7 +117,7 @@ async function handleLogin(event) {
 
     enterMainScreen(data.user);
   } catch (error) {
-    setAuthStatus(error.message || "Email ou senha invalidos.", "error");
+    setLoginStatus(error.message || "Email ou senha invalidos.", "error");
   }
 }
 
@@ -118,7 +125,7 @@ async function restoreSession() {
   const token = localStorage.getItem("geoTrackerToken");
 
   if (!token) {
-    switchAuthTab("login");
+    showAuthScreen("login");
     return;
   }
 
@@ -140,8 +147,8 @@ async function restoreSession() {
   } catch (_error) {
     localStorage.removeItem("geoTrackerToken");
     state.authToken = null;
-    switchAuthTab("login");
-    setAuthStatus("Sessao expirada. Faca login novamente.", "error");
+    showAuthScreen("login");
+    setLoginStatus("Sessao expirada. Faca login novamente.", "error");
   }
 }
 
@@ -151,6 +158,7 @@ function enterMainScreen(user) {
   avatarEl.textContent = state.userInitials;
 
   loginScreen.classList.remove("active");
+  registerScreen.classList.remove("active");
   mainScreen.classList.add("active");
 
   initializeMap();
@@ -292,12 +300,20 @@ function setStatus(message) {
   statusText.textContent = message;
 }
 
-function setAuthStatus(message, type = "info") {
-  authStatus.textContent = message;
-  authStatus.classList.remove("error", "success");
+function setLoginStatus(message, type = "info") {
+  setStatusText(loginStatus, message, type);
+}
 
-  if (type === "error") authStatus.classList.add("error");
-  if (type === "success") authStatus.classList.add("success");
+function setRegisterStatus(message, type = "info") {
+  setStatusText(registerStatus, message, type);
+}
+
+function setStatusText(element, message, type = "info") {
+  element.textContent = message;
+  element.classList.remove("error", "success");
+
+  if (type === "error") element.classList.add("error");
+  if (type === "success") element.classList.add("success");
 }
 
 function deriveUserInitials(email, firstName, lastName) {
