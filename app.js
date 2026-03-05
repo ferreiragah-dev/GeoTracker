@@ -19,6 +19,7 @@ const loginStatus = document.getElementById("loginStatus");
 const registerStatus = document.getElementById("registerStatus");
 const goToRegisterBtn = document.getElementById("goToRegister");
 const backToLoginBtn = document.getElementById("backToLogin");
+const forgotPasswordBtn = document.getElementById("forgotPasswordLink");
 
 const startBtn = document.getElementById("startBtn");
 const statusText = document.getElementById("statusText");
@@ -29,6 +30,7 @@ loginForm.addEventListener("submit", handleLogin);
 registerForm.addEventListener("submit", handleRegister);
 goToRegisterBtn.addEventListener("click", () => showAuthScreen("register"));
 backToLoginBtn.addEventListener("click", () => showAuthScreen("login"));
+forgotPasswordBtn.addEventListener("click", handleForgotPassword);
 
 startBtn.addEventListener("click", startLocationSharing);
 trackingToggle.addEventListener("change", handleToggleChange);
@@ -314,6 +316,17 @@ function setStatusText(element, message, type = "info") {
 
   if (type === "error") element.classList.add("error");
   if (type === "success") element.classList.add("success");
+}
+
+function handleForgotPassword() {
+  const email = loginForm.email.value.trim();
+
+  if (!email) {
+    setLoginStatus("Informe seu email para recuperar a senha.", "error");
+    return;
+  }
+
+  setLoginStatus("Link de recuperacao em breve. Contate o suporte por enquanto.");
 }
 
 function deriveUserInitials(email, firstName, lastName) {

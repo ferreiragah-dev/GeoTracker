@@ -158,9 +158,9 @@ body {
 .auth-footer {
   margin-top: 10px;
   display: flex;
-  gap: 8px;
+  gap: 16px;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   color: #cbd5e1;
   font-size: 0.86rem;
 }
