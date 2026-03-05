@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "geotracker-pwa",
   "version": "1.0.0",
   "description": "GeoTracker PWA with real PostgreSQL auth and user CRUD",

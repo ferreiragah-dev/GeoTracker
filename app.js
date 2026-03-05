@@ -1,4 +1,4 @@
-﻿const state = {
+const state = {
   map: null,
   marker: null,
   watchId: null,

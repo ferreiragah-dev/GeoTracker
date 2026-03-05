@@ -1,4 +1,4 @@
-﻿# GeoTracker PWA (Full Stack)
+# GeoTracker PWA (Full Stack)
 
 PWA mobile-first de tracking com autenticação real e CRUD de usuários em PostgreSQL.
 
