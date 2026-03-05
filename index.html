@@ -69,7 +69,7 @@
 
     <section id="mainScreen" class="screen main-screen" aria-label="Tracking screen">
       <header class="top-bar">
-        <button class="icon-button" aria-label="Open menu" type="button">Menu</button>
+        <button id="menuButton" class="icon-button" aria-label="Open menu" type="button">Menu</button>
         <h2 class="top-title">Tracking</h2>
 
         <label class="switch" aria-label="Tracking toggle">
@@ -84,9 +84,58 @@
 
       <section class="bottom-card" aria-label="Mission tracking card">
         <h3>Live Mission Tracking</h3>
+        <p id="circleText">Sem circulo selecionado.</p>
         <p id="statusText">Ready to share your location.</p>
         <button id="startBtn" class="btn btn-success" type="button">Start Sharing Location</button>
       </section>
+    </section>
+
+    <aside id="menuPanel" class="menu-panel" aria-label="Main menu">
+      <div class="menu-header">
+        <h3>Menu</h3>
+        <button id="closeMenuButton" class="icon-button" type="button">Fechar</button>
+      </div>
+
+      <button id="createCircleMenuBtn" class="btn btn-success" type="button">Criar circulo</button>
+      <button id="refreshCirclesBtn" class="btn btn-primary menu-btn" type="button">Atualizar circulos</button>
+
+      <div class="menu-section">
+        <h4>Meus circulos</h4>
+        <ul id="circleList" class="circle-list"></ul>
+      </div>
+    </aside>
+
+    <div id="menuBackdrop" class="menu-backdrop" aria-hidden="true"></div>
+
+    <section id="circleModal" class="circle-modal" aria-label="Create circle modal">
+      <div class="circle-modal-card">
+        <div class="menu-header">
+          <h3>Criar circulo</h3>
+          <button id="closeCircleModalBtn" class="icon-button" type="button">Fechar</button>
+        </div>
+
+        <form id="createCircleForm" class="login-form" autocomplete="off">
+          <label class="field-label" for="circleNameInput">Nome do circulo</label>
+          <input
+            id="circleNameInput"
+            name="circleNameInput"
+            class="text-input"
+            type="text"
+            placeholder="Ex: Familia Centro"
+            maxlength="120"
+            required
+          />
+          <button class="btn btn-success" type="submit">Criar</button>
+        </form>
+
+        <p id="circleModalStatus" class="auth-status" role="status" aria-live="polite"></p>
+
+        <div id="inviteLinkBox" class="invite-link-box hidden">
+          <label class="field-label" for="inviteLinkInput">Link de convite</label>
+          <input id="inviteLinkInput" class="text-input" type="text" readonly />
+          <button id="copyInviteLinkBtn" class="btn btn-primary" type="button">Copiar link</button>
+        </div>
+      </div>
     </section>
   </main>
 

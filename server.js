@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const path = require("path");
+const crypto = require("crypto");
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -15,22 +16,56 @@ function parseBool(value, fallback = false) {
   return String(value).toLowerCase() === "true";
 }
 
-function getDbConfig() {
-  const sslEnabled = parseBool(process.env.DB_SSL, false);
+function firstDefined(...values) {
+  for (const value of values) {
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return String(value).trim();
+    }
+  }
+  return null;
+}
 
-  if (process.env.DATABASE_URL) {
+function getDbConfig() {
+  const connectionString = firstDefined(
+    process.env.DATABASE_URL,
+    process.env.DB_URL,
+    process.env.POSTGRES_URL,
+    process.env.POSTGRESQL_URL
+  );
+
+  const sslFromUrl = /sslmode=require/i.test(connectionString || "");
+  const sslEnabled = parseBool(process.env.DB_SSL, sslFromUrl);
+
+  if (connectionString) {
     return {
-      connectionString: process.env.DATABASE_URL,
+      connectionString,
       ssl: sslEnabled ? { rejectUnauthorized: false } : false,
     };
   }
 
+  const host = firstDefined(process.env.DB_HOST);
+  const user = firstDefined(process.env.DB_USER);
+  const password = firstDefined(process.env.DB_PASSWORD);
+  const database = firstDefined(process.env.DB_NAME);
+  const missing = [];
+
+  if (!host) missing.push("DB_HOST");
+  if (!user) missing.push("DB_USER");
+  if (!password) missing.push("DB_PASSWORD");
+  if (!database) missing.push("DB_NAME");
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Database env missing: ${missing.join(", ")}. Configure DATABASE_URL or DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME.`
+    );
+  }
+
   return {
-    host: process.env.DB_HOST,
+    host,
     port: Number(process.env.DB_PORT || 5432),
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
+    user,
+    password,
+    database,
     ssl: sslEnabled ? { rejectUnauthorized: false } : false,
   };
 }
@@ -66,6 +101,22 @@ function buildUserInitials(firstName, lastName, email) {
 
   const localPart = normalizeEmail(email).split("@")[0];
   return (localPart.slice(0, 2) || "GS").toUpperCase();
+}
+
+function mapCircle(row, currentUserId) {
+  return {
+    id: row.id,
+    name: row.name,
+    inviteCode: row.invite_code,
+    ownerUserId: row.owner_user_id,
+    memberCount: Number(row.member_count || 0),
+    createdAt: row.created_at,
+    isOwner: Number(row.owner_user_id) === Number(currentUserId),
+  };
+}
+
+function generateInviteCode() {
+  return crypto.randomBytes(16).toString("hex");
 }
 
 function authMiddleware(req, res, next) {
@@ -121,6 +172,25 @@ async function ensureSchema() {
       tracked_at TIMESTAMPTZ NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS circles (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(120) NOT NULL,
+      owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      invite_code VARCHAR(64) UNIQUE NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS circle_members (
+      circle_id INTEGER NOT NULL REFERENCES circles(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role VARCHAR(20) NOT NULL DEFAULT 'member',
+      joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY(circle_id, user_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_circle_members_user_id ON circle_members(user_id);
+    CREATE INDEX IF NOT EXISTS idx_locations_user_tracked_at ON locations(user_id, tracked_at DESC);
   `;
 
   await pool.query(sql);
@@ -260,6 +330,242 @@ app.get("/api/auth/me", authMiddleware, async (req, res) => {
     });
   } catch (_error) {
     return res.status(500).json({ error: "Failed to fetch current user." });
+  }
+});
+
+// Create circle
+app.post("/api/circles", authMiddleware, async (req, res) => {
+  const name = String(req.body.name || "").trim();
+
+  if (!name) {
+    return res.status(400).json({ error: "Circle name is required." });
+  }
+
+  if (name.length > 120) {
+    return res.status(400).json({ error: "Circle name must have at most 120 chars." });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const inviteCode = generateInviteCode();
+    const circleResult = await client.query(
+      `
+        INSERT INTO circles (name, owner_user_id, invite_code)
+        VALUES ($1, $2, $3)
+        RETURNING id, name, owner_user_id, invite_code, created_at
+      `,
+      [name, req.auth.userId, inviteCode]
+    );
+
+    const circle = circleResult.rows[0];
+
+    await client.query(
+      `
+        INSERT INTO circle_members (circle_id, user_id, role)
+        VALUES ($1, $2, 'owner')
+      `,
+      [circle.id, req.auth.userId]
+    );
+
+    await client.query("COMMIT");
+
+    return res.status(201).json({
+      circle: {
+        ...mapCircle(circle, req.auth.userId),
+        memberCount: 1,
+      },
+    });
+  } catch (_error) {
+    await client.query("ROLLBACK");
+    return res.status(500).json({ error: "Failed to create circle." });
+  } finally {
+    client.release();
+  }
+});
+
+// Join circle via invite code
+app.post("/api/circles/join", authMiddleware, async (req, res) => {
+  const inviteCode = String(req.body.inviteCode || "").trim();
+
+  if (!inviteCode) {
+    return res.status(400).json({ error: "Invite code is required." });
+  }
+
+  try {
+    const circleResult = await pool.query(
+      `
+        SELECT id, name, owner_user_id, invite_code, created_at
+        FROM circles
+        WHERE invite_code = $1
+      `,
+      [inviteCode]
+    );
+
+    if (!circleResult.rows[0]) {
+      return res.status(404).json({ error: "Invite link is invalid." });
+    }
+
+    const circle = circleResult.rows[0];
+
+    await pool.query(
+      `
+        INSERT INTO circle_members (circle_id, user_id, role)
+        VALUES ($1, $2, 'member')
+        ON CONFLICT (circle_id, user_id) DO NOTHING
+      `,
+      [circle.id, req.auth.userId]
+    );
+
+    const countResult = await pool.query(
+      `
+        SELECT COUNT(*)::int AS member_count
+        FROM circle_members
+        WHERE circle_id = $1
+      `,
+      [circle.id]
+    );
+
+    return res.json({
+      circle: {
+        ...mapCircle(
+          {
+            ...circle,
+            member_count: countResult.rows[0].member_count,
+          },
+          req.auth.userId
+        ),
+      },
+    });
+  } catch (_error) {
+    return res.status(500).json({ error: "Failed to join circle." });
+  }
+});
+
+// List circles for current user
+app.get("/api/circles", authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `
+        SELECT
+          c.id,
+          c.name,
+          c.owner_user_id,
+          c.invite_code,
+          c.created_at,
+          COUNT(cm2.user_id)::int AS member_count
+        FROM circle_members cm
+        JOIN circles c ON c.id = cm.circle_id
+        LEFT JOIN circle_members cm2 ON cm2.circle_id = c.id
+        WHERE cm.user_id = $1
+        GROUP BY c.id
+        ORDER BY c.created_at DESC
+      `,
+      [req.auth.userId]
+    );
+
+    return res.json({
+      circles: rows.map((row) => mapCircle(row, req.auth.userId)),
+    });
+  } catch (_error) {
+    return res.status(500).json({ error: "Failed to list circles." });
+  }
+});
+
+// Circle members + last known locations
+app.get("/api/circles/:id/members/locations", authMiddleware, async (req, res) => {
+  const circleId = Number(req.params.id);
+
+  if (!Number.isInteger(circleId)) {
+    return res.status(400).json({ error: "Invalid circle id." });
+  }
+
+  try {
+    const membershipCheck = await pool.query(
+      `
+        SELECT 1
+        FROM circle_members
+        WHERE circle_id = $1 AND user_id = $2
+      `,
+      [circleId, req.auth.userId]
+    );
+
+    if (!membershipCheck.rows[0]) {
+      return res.status(403).json({ error: "You are not a member of this circle." });
+    }
+
+    const circleResult = await pool.query(
+      `
+        SELECT
+          c.id,
+          c.name,
+          c.owner_user_id,
+          c.invite_code,
+          c.created_at,
+          COUNT(cm.user_id)::int AS member_count
+        FROM circles c
+        LEFT JOIN circle_members cm ON cm.circle_id = c.id
+        WHERE c.id = $1
+        GROUP BY c.id
+      `,
+      [circleId]
+    );
+
+    if (!circleResult.rows[0]) {
+      return res.status(404).json({ error: "Circle not found." });
+    }
+
+    const membersResult = await pool.query(
+      `
+        SELECT
+          u.id AS user_id,
+          u.first_name,
+          u.last_name,
+          u.email,
+          cm.role,
+          l.lat,
+          l.lng,
+          l.accuracy,
+          l.tracked_at
+        FROM circle_members cm
+        JOIN users u ON u.id = cm.user_id
+        LEFT JOIN LATERAL (
+          SELECT lat, lng, accuracy, tracked_at
+          FROM locations
+          WHERE user_id = cm.user_id
+          ORDER BY tracked_at DESC
+          LIMIT 1
+        ) l ON TRUE
+        WHERE cm.circle_id = $1
+        ORDER BY cm.joined_at ASC
+      `,
+      [circleId]
+    );
+
+    const members = membersResult.rows.map((row) => ({
+      userId: row.user_id,
+      firstName: row.first_name,
+      lastName: row.last_name,
+      email: row.email,
+      role: row.role,
+      initials: buildUserInitials(row.first_name, row.last_name, row.email),
+      lastLocation: row.lat === null
+        ? null
+        : {
+            lat: Number(row.lat),
+            lng: Number(row.lng),
+            accuracy: row.accuracy === null ? null : Number(row.accuracy),
+            timestamp: row.tracked_at,
+          },
+    }));
+
+    return res.json({
+      circle: mapCircle(circleResult.rows[0], req.auth.userId),
+      members,
+    });
+  } catch (_error) {
+    return res.status(500).json({ error: "Failed to fetch circle members." });
   }
 });
 
@@ -433,7 +739,7 @@ app.post("/api/location", authMiddleware, async (req, res) => {
 
 app.use(express.static(path.join(__dirname)));
 
-app.get(["/", "/login", "/register"], (_req, res) => {
+app.get(["/", "/login", "/register", "/join/:inviteCode"], (_req, res) => {
   return res.sendFile(path.join(__dirname, "index.html"));
 });
 
