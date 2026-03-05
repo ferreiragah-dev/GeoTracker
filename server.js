@@ -433,6 +433,10 @@ app.post("/api/location", authMiddleware, async (req, res) => {
 
 app.use(express.static(path.join(__dirname)));
 
+app.get(["/", "/login", "/register"], (_req, res) => {
+  return res.sendFile(path.join(__dirname, "index.html"));
+});
+
 app.get("*", (req, res) => {
   if (req.path.startsWith("/api/")) {
     return res.status(404).json({ error: "API route not found." });

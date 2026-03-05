@@ -37,15 +37,37 @@ trackingToggle.addEventListener("change", handleToggleChange);
 
 registerServiceWorker();
 restoreSession();
+window.addEventListener("popstate", handleBrowserNavigation);
 
-function showAuthScreen(target) {
+function handleBrowserNavigation() {
+  if (state.isLoggedIn) return;
+
+  const target = resolveAuthScreenFromPath(window.location.pathname);
+  showAuthScreen(target, { updateHistory: false });
+}
+
+function showAuthScreen(target, options = {}) {
+  const { updateHistory = true, historyMode = "push" } = options;
   const showLogin = target !== "register";
 
   loginScreen.classList.toggle("active", showLogin);
   registerScreen.classList.toggle("active", !showLogin);
+  mainScreen.classList.remove("active");
+  state.isLoggedIn = false;
 
   setLoginStatus("");
   setRegisterStatus("");
+
+  if (updateHistory) {
+    const path = showLogin ? "/login" : "/register";
+    if (window.location.pathname !== path) {
+      if (historyMode === "replace") {
+        window.history.replaceState({}, "", path);
+      } else {
+        window.history.pushState({}, "", path);
+      }
+    }
+  }
 }
 
 async function handleRegister(event) {
@@ -127,7 +149,8 @@ async function restoreSession() {
   const token = localStorage.getItem("geoTrackerToken");
 
   if (!token) {
-    showAuthScreen("login");
+    const target = resolveAuthScreenFromPath(window.location.pathname);
+    showAuthScreen(target, { updateHistory: false });
     return;
   }
 
@@ -149,7 +172,7 @@ async function restoreSession() {
   } catch (_error) {
     localStorage.removeItem("geoTrackerToken");
     state.authToken = null;
-    showAuthScreen("login");
+    showAuthScreen("login", { historyMode: "replace" });
     setLoginStatus("Sessao expirada. Faca login novamente.", "error");
   }
 }
@@ -162,6 +185,9 @@ function enterMainScreen(user) {
   loginScreen.classList.remove("active");
   registerScreen.classList.remove("active");
   mainScreen.classList.add("active");
+  if (window.location.pathname !== "/") {
+    window.history.replaceState({}, "", "/");
+  }
 
   initializeMap();
 }
@@ -327,6 +353,11 @@ function handleForgotPassword() {
   }
 
   setLoginStatus("Link de recuperacao em breve. Contate o suporte por enquanto.");
+}
+
+function resolveAuthScreenFromPath(pathname) {
+  if (pathname === "/register") return "register";
+  return "login";
 }
 
 function deriveUserInitials(email, firstName, lastName) {
